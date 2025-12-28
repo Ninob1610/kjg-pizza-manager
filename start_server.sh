@@ -20,6 +20,10 @@ pip install -r requirements.txt
 echo "Applying database migrations..."
 python manage.py migrate
 
+# Create default admin user
+echo "Checking for default admin user..."
+python manage.py create_default_admin
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput

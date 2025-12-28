@@ -65,7 +65,11 @@ Das System ist in verschiedene Ansichten unterteilt, um den Arbeitsfluss zu opti
     python manage.py migrate
     ```
 
-5.  **Superuser erstellen (für Admin-Zugriff):**
+5.  **Admin-Zugriff einrichten:**
+    Beim ersten Start wird automatisch ein Standard-Admin erstellt, falls noch keiner existiert.
+    Login: `admin` / `admin`
+
+    Wenn du stattdessen oder zusätzlich einen eigenen Admin anlegen möchtest:
     ```bash
     python manage.py createsuperuser
     ```
@@ -93,7 +97,7 @@ chmod +x start_server.sh
 ### Produkte verwalten
 Um Pizzen und Getränke hinzuzufügen oder Preise zu ändern:
 1.  Gehe zu `http://<deine-ip>:8000/admin/`
-2.  Logge dich mit dem erstellten Superuser ein.
+2.  Logge dich mit dem Standard-Admin ein (`admin` / `admin`) oder mit deinem eigenen Superuser.
 3.  Unter **Orders** -> **Products** kannst du das Menü bearbeiten.
 
 ### Einstellungen

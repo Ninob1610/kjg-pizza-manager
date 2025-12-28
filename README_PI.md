@@ -67,10 +67,16 @@ Der Server ist nun im Netzwerk unter der IP-Adresse des Raspberry Pi erreichbar:
 *   **Auswertung:** `http://<RASPBERRY_PI_IP>:8000/auswertung/`
 *   **Admin:** `http://<RASPBERRY_PI_IP>:8000/admin/`
 
-## Admin-Benutzer erstellen
+## Admin-Benutzer
 
-Um auf den Admin-Bereich zugreifen zu können, musst du einmalig einen Superuser erstellen:
+Beim ersten Start wird automatisch ein Standard-Admin-Benutzer erstellt, falls noch keiner existiert.
 
+*   **Benutzername:** `admin`
+*   **Passwort:** `admin`
+
+Bitte ändere das Passwort nach dem ersten Login unter `http://<RASPBERRY_PI_IP>:8000/admin/`!
+
+Falls du einen weiteren Admin manuell erstellen möchtest:
 ```bash
 cd /home/pi/KjG-Pizza
 source .venv/bin/activate

@@ -1,0 +1,80 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Kasse - Übersicht</h2>
+    <a href="{% url 'create_order_cashier' %}" class="btn btn-success">Neue Bestellung</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="card-header-kjg">
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Bestellung</th>
+                <th>Preis</th>
+                <th>Status</th>
+                <th>Bezahlt?</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.id }}</td>
+                <td>{{ order.customer_name|default:"-" }}</td>
+                <td>
+                    {% if order.notes %}
+                    <div class="text-info small mb-1">
+                        <strong>Note:</strong> {{ order.notes }}
+                    </div>
+                    {% endif %}
+                    <ul class="list-unstyled mb-0">
+                        {% for item in order.items.all %}
+                        <li>{{ item.quantity }}x {{ item.product.name }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>{{ order.total_price }}€</td>
+                <td>
+                    <span class="status-{{ order.status }}">
+                        {{ order.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    {% if order.is_paid %}
+                    <span class="badge bg-success">Ja</span>
+                    {% else %}
+                    <span class="badge bg-danger">Nein</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                        {% if not order.is_paid %}
+                        <button type="submit" name="mark_paid" class="btn btn-sm btn-outline-success mb-1">Bezahlt</button>
+                        {% endif %}
+                        
+                        <div class="input-group input-group-sm">
+                            <select name="new_status" class="form-select">
+                                <option value="received" {% if order.status == 'received' %}selected{% endif %}>Eingegangen</option>
+                                <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>In Zubereitung</option>
+                                <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Abholbereit</option>
+                                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Abgeschlossen</option>
+                            </select>
+                            <button type="submit" name="update_status" class="btn btn-primary">OK</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center">Keine aktiven Bestellungen.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

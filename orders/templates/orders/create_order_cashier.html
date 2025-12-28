@@ -1,0 +1,138 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-4">Kasse - Neue Bestellung</h2>
+        <div class="row">
+            {% for product in products %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text text-muted">{{ product.price }}€</p>
+                        
+                        <div class="d-flex justify-content-center align-items-center">
+                            <button type="button" class="btn btn-danger btn-sm me-2 change-qty" 
+                                    data-id="{{ product.id }}" data-delta="-1">-</button>
+                            <span class="h4 mb-0 mx-2 qty-display" id="qty-display-{{ product.id }}">0</span>
+                            <button type="button" class="btn btn-success btn-sm ms-2 change-qty" 
+                                    data-id="{{ product.id }}" data-delta="1">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card sticky-top" style="top: 20px; z-index: 100;">
+            <div class="card-header card-header-kjg">
+                <h4 class="mb-0">Bestellübersicht</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" id="cashier-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ form.customer_name.label_tag }}
+                        {{ form.customer_name }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.notes.label_tag }}
+                        {{ form.notes }}
+                    </div>
+                    
+                    <hr>
+                    <div id="order-summary">
+                        <p class="text-muted text-center">Keine Artikel.</p>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between h4">
+                        <strong>Summe:</strong>
+                        <span id="total-price">0.00€</span>
+                    </div>
+
+                    <!-- Hidden inputs for quantities -->
+                    <div id="hidden-inputs"></div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg" id="submit-btn" disabled>Bestellung abschließen</button>
+                        <a href="{% url 'cashier_dashboard' %}" class="btn btn-secondary">Abbrechen</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const products = {
+        {% for p in products %}
+        "{{ p.id }}": { name: "{{ p.name }}", price: {{ p.price|stringformat:".2f" }} },
+        {% endfor %}
+    };
+    const quantities = {};
+
+    document.querySelectorAll('.change-qty').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const delta = parseInt(btn.dataset.delta);
+            
+            if (!quantities[id]) quantities[id] = 0;
+            quantities[id] += delta;
+            if (quantities[id] < 0) quantities[id] = 0;
+
+            updateUI();
+        });
+    });
+
+    function updateUI() {
+        const summaryDiv = document.getElementById('order-summary');
+        const hiddenInputsDiv = document.getElementById('hidden-inputs');
+        const totalSpan = document.getElementById('total-price');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        summaryDiv.innerHTML = '';
+        hiddenInputsDiv.innerHTML = '';
+        let total = 0;
+        let hasItems = false;
+
+        for (const [id, qty] of Object.entries(quantities)) {
+            // Update grid display
+            document.getElementById(`qty-display-${id}`).textContent = qty;
+
+            if (qty > 0) {
+                hasItems = true;
+                const p = products[id];
+                const lineTotal = p.price * qty;
+                total += lineTotal;
+
+                // Add to summary
+                const row = document.createElement('div');
+                row.className = 'd-flex justify-content-between mb-1';
+                row.innerHTML = `<span>${qty}x ${p.name}</span><span>${lineTotal.toFixed(2)}€</span>`;
+                summaryDiv.appendChild(row);
+
+                // Add hidden input
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = `product_${id}`;
+                input.value = qty;
+                hiddenInputsDiv.appendChild(input);
+            }
+        }
+
+        totalSpan.textContent = total.toFixed(2) + '€';
+        
+        if (!hasItems) {
+            summaryDiv.innerHTML = '<p class="text-muted text-center">Keine Artikel.</p>';
+            submitBtn.disabled = true;
+        } else {
+            submitBtn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

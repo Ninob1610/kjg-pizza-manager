@@ -1,0 +1,13 @@
+[Unit]
+Description=KjG Pizza Stand Server
+After=network.target
+
+[Service]
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/KjG-Pizza
+ExecStart=/home/pi/KjG-Pizza/start_server.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

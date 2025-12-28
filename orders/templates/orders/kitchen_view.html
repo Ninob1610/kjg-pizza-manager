@@ -1,0 +1,76 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<meta http-equiv="refresh" content="30"> <!-- Auto refresh every 30 seconds -->
+
+<h2 class="mb-4">Küche - Offene Bestellungen</h2>
+<p class="text-muted">Tastatursteuerung: Drücke die Nummerntaste (1-9), um den Status der entsprechenden Bestellung zu ändern.</p>
+
+<div class="row">
+    {% for order in orders %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 {% if order.status == 'preparing' %}border-warning{% else %}border-danger{% endif %}">
+            <div class="card-header {% if order.status == 'preparing' %}bg-warning{% else %}bg-danger text-white{% endif %}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <span class="badge bg-dark me-2">{{ forloop.counter }}</span>
+                        #{{ order.id }} {{ order.customer_name }}
+                    </h5>
+                    <span>{{ order.created_at|date:"H:i" }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if order.notes %}
+                <div class="alert alert-info mb-3">
+                    <strong>Extrawünsche:</strong><br>
+                    {{ order.notes|linebreaksbr }}
+                </div>
+                {% endif %}
+                <ul class="list-group list-group-flush">
+                    {% for item in order.items.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ item.product.name }}
+                        <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer">
+                <form method="post" id="form-{{ forloop.counter }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                    {% if order.status == 'received' %}
+                    <input type="hidden" name="next_status" value="preparing">
+                    <button type="submit" class="btn btn-warning w-100">Starten (Zubereitung)</button>
+                    {% elif order.status == 'preparing' %}
+                    <input type="hidden" name="next_status" value="ready">
+                    <button type="submit" class="btn btn-success w-100">Fertig (Abholbereit)</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            Aktuell keine offenen Bestellungen für die Küche.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('keydown', function(event) {
+        // Check if key is a number between 1 and 9
+        if (event.key >= '1' && event.key <= '9') {
+            const formId = 'form-' + event.key;
+            const form = document.getElementById(formId);
+            if (form) {
+                form.submit();
+            }
+        }
+    });
+</script>
+{% endblock %}

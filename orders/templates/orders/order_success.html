@@ -1,0 +1,17 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <div class="card mx-auto" style="max-width: 500px;">
+        <div class="card-body">
+            <h1 class="text-success mb-4">Bestellung erfolgreich!</h1>
+            <p class="lead">Deine Bestellnummer ist:</p>
+            <h2 class="display-4 font-weight-bold">#{{ order.id }}</h2>
+            <p class="mt-4">Bitte merke dir diese Nummer. <br>Bezahlung erfolgt bei Abholung.</p>
+            <hr>
+            <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+            <a href="/" class="btn btn-kjg mt-3">Zurück zur Startseite</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

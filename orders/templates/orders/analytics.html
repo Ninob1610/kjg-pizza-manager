@@ -1,0 +1,147 @@
+{% extends 'orders/base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Auswertung</h2>
+
+<!-- Charts Section -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header card-header-kjg">Umsatz pro Tag</div>
+            <div class="card-body">
+                <canvas id="dailyRevenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header card-header-kjg">Beliebteste Produkte</div>
+            <div class="card-body">
+                <canvas id="productChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 mb-4">
+        <div class="card h-100">
+            <div class="card-header card-header-kjg">Bestellungen nach Tageszeit</div>
+            <div class="card-body">
+                <canvas id="hourlyChart" style="max-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header card-header-kjg">
+        Detail-Tabelle: Verkaufte Produkte pro Tag
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Produkt</th>
+                        <th>Anzahl</th>
+                        <th>Umsatz (ca.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stats %}
+                    <tr>
+                        <td>{{ row.date|date:"d.m.Y" }}</td>
+                        <td>{{ row.product__name }}</td>
+                        <td>{{ row.total_quantity }}</td>
+                        <td>{{ row.total_revenue|floatformat:2 }}€</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">Keine Daten vorhanden.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="/admin/" class="btn btn-secondary">Zum Admin-Bereich (Produkte verwalten)</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Colors
+    const kjgPrimary = '#00b6be';
+    const kjgSecondary = '#006d84';
+    const kjgRed = '#E30613';
+
+    // 1. Daily Revenue Chart
+    const ctxDaily = document.getElementById('dailyRevenueChart').getContext('2d');
+    new Chart(ctxDaily, {
+        type: 'line',
+        data: {
+            labels: {{ daily_labels|safe }},
+            datasets: [{
+                label: 'Umsatz (€)',
+                data: {{ daily_values|safe }},
+                borderColor: kjgPrimary,
+                backgroundColor: 'rgba(0, 182, 190, 0.2)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. Product Popularity Chart
+    const ctxProduct = document.getElementById('productChart').getContext('2d');
+    new Chart(ctxProduct, {
+        type: 'doughnut',
+        data: {
+            labels: {{ product_labels|safe }},
+            datasets: [{
+                data: {{ product_values|safe }},
+                backgroundColor: [
+                    kjgPrimary,
+                    kjgSecondary,
+                    kjgRed,
+                    '#ffc107',
+                    '#198754',
+                    '#6c757d'
+                ]
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+    // 3. Hourly Activity Chart
+    const ctxHourly = document.getElementById('hourlyChart').getContext('2d');
+    new Chart(ctxHourly, {
+        type: 'bar',
+        data: {
+            labels: {{ hourly_labels|safe }},
+            datasets: [{
+                label: 'Anzahl Bestellungen',
+                data: {{ hourly_values|safe }},
+                backgroundColor: kjgSecondary,
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+</script>
+{% endblock %}

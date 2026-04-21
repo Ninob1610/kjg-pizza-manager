@@ -23,6 +23,20 @@ class StationWorkflowTests(TestCase):
 	def setUp(self):
 		self.product = Product.objects.create(name='Salami', price='8.50', category='pizza')
 
+	def test_cashier_order_stores_item_note_per_product(self):
+		response = self.client.post(reverse('create_order_cashier'), {
+			'customer_name': 'Lina',
+			'notes': 'Bitte schnell',
+			f'product_{self.product.id}': '2',
+			f'product_note_{self.product.id}': 'ohne Zwiebeln',
+		})
+
+		self.assertRedirects(response, reverse('cashier_dashboard'))
+		order = Order.objects.latest('id')
+		item = order.items.get(product=self.product)
+		self.assertEqual(item.quantity, 2)
+		self.assertEqual(item.notes, 'ohne Zwiebeln')
+
 	def create_order(self, status):
 		order = Order.objects.create(customer_name='Max', status=status, is_paid=True)
 		OrderItem.objects.create(order=order, product=self.product, quantity=1)

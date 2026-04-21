@@ -32,7 +32,12 @@
                     {% endif %}
                     <ul class="list-unstyled mb-0">
                         {% for item in order.items.all %}
-                        <li>{{ item.quantity }}x {{ item.product.name }}</li>
+                        <li>
+                            {{ item.quantity }}x {{ item.product.name }}
+                            {% if item.notes %}
+                            <div class="text-info small"><strong>Extrawunsch:</strong> {{ item.notes }}</div>
+                            {% endif %}
+                        </li>
                         {% endfor %}
                     </ul>
                 </td>

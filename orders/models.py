@@ -35,6 +35,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
+    notes = models.TextField(blank=True, null=True, verbose_name="Extrawünsche")
 
     def total_price(self):
         return self.product.price * self.quantity

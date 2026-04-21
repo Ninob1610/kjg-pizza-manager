@@ -38,9 +38,14 @@
                 {% endif %}
                 <ul class="list-group list-group-flush">
                     {% for item in order.items.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        {{ item.product.name }}
-                        <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            {{ item.product.name }}
+                            <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                        </div>
+                        {% if item.notes %}
+                        <div class="small text-info mt-1"><strong>Extrawunsch:</strong> {{ item.notes|linebreaksbr }}</div>
+                        {% endif %}
                     </li>
                     {% endfor %}
                 </ul>

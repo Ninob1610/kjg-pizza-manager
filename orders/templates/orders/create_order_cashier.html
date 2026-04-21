@@ -41,6 +41,7 @@
                     <div class="mb-3">
                         {{ form.notes.label_tag }}
                         {{ form.notes }}
+                        <div class="form-text">Optional: Allgemeiner Hinweis zur gesamten Bestellung.</div>
                     </div>
 
                     <hr>
@@ -85,6 +86,7 @@
         {% endfor %}
     };
     const quantities = {};
+    const itemNotes = {};
     let currentTotal = 0;
 
     document.querySelectorAll('.change-qty').forEach(btn => {
@@ -133,6 +135,11 @@
         const totalSpan = document.getElementById('total-price');
         const submitBtn = document.getElementById('submit-btn');
         const cashInput = document.getElementById('cash-paid');
+
+        summaryDiv.querySelectorAll('textarea[name^="product_note_"]').forEach(field => {
+            const id = field.name.replace('product_note_', '');
+            itemNotes[id] = field.value;
+        });
         
         summaryDiv.innerHTML = '';
         hiddenInputsDiv.innerHTML = '';
@@ -151,8 +158,20 @@
 
                 // Add to summary
                 const row = document.createElement('div');
-                row.className = 'd-flex justify-content-between mb-1';
-                row.innerHTML = `<span>${qty}x ${p.name}</span><span>${lineTotal.toFixed(2)}€</span>`;
+                row.className = 'mb-2';
+                row.innerHTML = `
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>${qty}x ${p.name}</span>
+                        <span>${lineTotal.toFixed(2)}€</span>
+                    </div>
+                    <textarea
+                        class="form-control form-control-sm"
+                        rows="2"
+                        name="product_note_${id}"
+                        placeholder="Extrawünsche für diese Pizza"
+                    ></textarea>
+                `;
+                row.querySelector('textarea').value = itemNotes[id] || '';
                 summaryDiv.appendChild(row);
 
                 // Add hidden input

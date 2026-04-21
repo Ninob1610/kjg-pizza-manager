@@ -39,13 +39,19 @@ def create_order_cashier(request):
             # Process items from POST data (similar to customer view)
             has_items = False
             for key, value in request.POST.items():
-                if key.startswith('product_'):
+                if key.startswith('product_') and key[8:].isdigit():
                     try:
                         p_id = int(key.split('_')[1])
                         quantity = int(value)
                         if quantity > 0:
                             product = Product.objects.get(id=p_id)
-                            OrderItem.objects.create(order=order, product=product, quantity=quantity)
+                            item_notes = request.POST.get(f'product_note_{p_id}', '').strip()
+                            OrderItem.objects.create(
+                                order=order,
+                                product=product,
+                                quantity=quantity,
+                                notes=item_notes or None,
+                            )
                             has_items = True
                     except (ValueError, Product.DoesNotExist):
                         continue

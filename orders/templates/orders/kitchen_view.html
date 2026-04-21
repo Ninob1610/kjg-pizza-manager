@@ -45,11 +45,11 @@
                     <li class="list-group-item">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
-                                <div class="fw-semibold">{{ item.product.name }}</div>
+                                <div class="fw-semibold">{{ item.product.name }} <span class="text-muted">({{ item.pizza_number }}/{{ item.pizza_total }})</span></div>
                                 <div class="small text-muted">{{ item.get_status_display }}</div>
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                                <span class="badge bg-secondary rounded-pill">Pizza {{ item.pizza_number }}</span>
                                 <span class="badge {% if item.status == 'failed' %}bg-danger{% elif item.status == 'completed' %}bg-success{% elif item.status == 'ready' %}bg-info text-dark{% elif item.status == 'topping' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ item.get_status_display }}</span>
                             </div>
                         </div>

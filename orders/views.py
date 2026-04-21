@@ -49,6 +49,22 @@ def _build_display_orders(orders, mode):
             visible_items.append(item)
 
         if visible_items:
+            product_counts = {}
+            product_indices = {}
+            for item in visible_items:
+                key = (item.product.id, item.status)
+                if key not in product_counts:
+                    product_counts[key] = 0
+                    product_indices[key] = 0
+                product_counts[key] += 1
+
+            product_indices = {}
+            for item in visible_items:
+                key = (item.product.id, item.status)
+                product_indices[key] = product_indices.get(key, 0) + 1
+                item.pizza_number = product_indices[key]
+                item.pizza_total = product_counts[key]
+
             display_orders.append(SimpleNamespace(order=order, items=visible_items))
 
     return display_orders

@@ -20,18 +20,7 @@ def cashier_dashboard(request):
     orders = Order.objects.exclude(status='completed').order_by('-created_at')
     
     if request.method == 'POST':
-        # Handle status updates or new orders
-        if 'update_status' in request.POST:
-            order_id = request.POST.get('order_id')
-            new_status = request.POST.get('new_status')
-            order = get_object_or_404(Order, id=order_id)
-            order.status = new_status
-            if new_status == 'completed':
-                order.is_paid = True
-            order.save()
-            return redirect('cashier_dashboard')
-        
-        elif 'mark_paid' in request.POST:
+        if 'mark_paid' in request.POST:
             order_id = request.POST.get('order_id')
             order = get_object_or_404(Order, id=order_id)
             order.is_paid = True
@@ -74,18 +63,53 @@ def create_order_cashier(request):
     })
 
 def kitchen_view(request):
-    # Kitchen sees orders that are received or preparing
-    orders = Order.objects.filter(status__in=['received', 'preparing']).order_by('created_at')
-    
+    orders = Order.objects.filter(status__in=['received', 'topping']).order_by('created_at')
+
     if request.method == 'POST':
         order_id = request.POST.get('order_id')
+        order = get_object_or_404(Order, id=order_id, status__in=['received', 'topping'])
         next_status = request.POST.get('next_status')
-        order = get_object_or_404(Order, id=order_id)
-        order.status = next_status
+
+        if not next_status:
+            next_status = 'topping' if order.status == 'received' else 'ready'
+
+        if order.status == 'received' and next_status == 'topping':
+            order.status = 'topping'
+        elif order.status == 'topping' and next_status == 'ready':
+            order.status = 'ready'
+        else:
+            return redirect('kitchen_view')
+
         order.save()
         return redirect('kitchen_view')
 
-    return render(request, 'orders/kitchen_view.html', {'orders': orders})
+    return render(request, 'orders/kitchen_view.html', {
+        'orders': orders,
+    })
+
+
+def output_view(request):
+    orders = Order.objects.filter(status='ready').order_by('created_at')
+
+    if request.method == 'POST':
+        order_id = request.POST.get('order_id')
+        order = get_object_or_404(Order, id=order_id, status='ready')
+        order.status = 'completed'
+        order.save()
+        return redirect('output_view')
+
+    return render(request, 'orders/kitchen_view.html', {
+        'orders': orders,
+        'page_title': 'Ausgabe',
+        'page_subtitle': 'Person D übergibt die fertigen Bestellungen an den Kunden.',
+        'button_label': 'Ausgegeben',
+        'empty_message': 'Aktuell keine Bestellungen zur Ausgabe.',
+        'card_border_class': 'border-primary',
+        'header_class': 'bg-primary',
+        'header_text_class': 'text-white',
+        'button_class': 'btn-primary',
+        'simple_ready_view': True,
+    })
 
 @staff_member_required
 def analytics_view(request):

@@ -41,7 +41,7 @@
             margin-top: 40px;
         }
         .status-received { color: #dc3545; font-weight: bold; }
-        .status-preparing { color: #ffc107; font-weight: bold; }
+        .status-topping { color: #fd7e14; font-weight: bold; }
         .status-ready { color: #198754; font-weight: bold; }
         .status-completed { color: #6c757d; }
     </style>
@@ -55,10 +55,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Bestellen</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/kasse/">Kasse</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/kueche/">Küche</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/auswertung/">Auswertung</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'customer_order' %}">Bestellen</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'cashier_dashboard' %}">Kasse</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'kitchen_view' %}">Belegen</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'output_view' %}">Ausgabe</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'analytics_view' %}">Auswertung</a></li>
                 </ul>
             </div>
         </div>

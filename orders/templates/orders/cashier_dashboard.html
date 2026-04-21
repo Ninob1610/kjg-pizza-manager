@@ -54,18 +54,8 @@
                         {% csrf_token %}
                         <input type="hidden" name="order_id" value="{{ order.id }}">
                         {% if not order.is_paid %}
-                        <button type="submit" name="mark_paid" class="btn btn-sm btn-outline-success mb-1">Bezahlt</button>
+                        <button type="submit" name="mark_paid" class="btn btn-sm btn-outline-success mb-1">Als bezahlt markieren</button>
                         {% endif %}
-                        
-                        <div class="input-group input-group-sm">
-                            <select name="new_status" class="form-select">
-                                <option value="received" {% if order.status == 'received' %}selected{% endif %}>Eingegangen</option>
-                                <option value="preparing" {% if order.status == 'preparing' %}selected{% endif %}>In Zubereitung</option>
-                                <option value="ready" {% if order.status == 'ready' %}selected{% endif %}>Abholbereit</option>
-                                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Abgeschlossen</option>
-                            </select>
-                            <button type="submit" name="update_status" class="btn btn-primary">OK</button>
-                        </div>
                     </form>
                 </td>
             </tr>

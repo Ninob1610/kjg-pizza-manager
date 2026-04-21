@@ -15,6 +15,15 @@ class OrderForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'z.B. Pizza Salami ohne Zwiebeln'}),
         }
 
+    def save(self, commit=True):
+        order = super().save(commit=False)
+        order.is_paid = True
+
+        if commit:
+            order.save()
+
+        return order
+
 class OrderItemForm(forms.ModelForm):
     class Meta:
         model = OrderItem

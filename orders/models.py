@@ -15,9 +15,9 @@ class Product(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = [
         ('received', 'Eingegangen'),
-        ('preparing', 'In Zubereitung'),
+        ('topping', 'Belegt'),
         ('ready', 'Abholbereit'),
-        ('completed', 'Abgeschlossen'),
+        ('completed', 'Ausgegeben'),
     ]
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     notes = models.TextField(blank=True, null=True, verbose_name="Anmerkungen / Extrawünsche")

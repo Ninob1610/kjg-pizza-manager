@@ -7,5 +7,6 @@ urlpatterns = [
     path('kasse/', views.cashier_dashboard, name='cashier_dashboard'),
     path('kasse/neu/', views.create_order_cashier, name='create_order_cashier'),
     path('kueche/', views.kitchen_view, name='kitchen_view'),
+    path('ausgabe/', views.output_view, name='output_view'),
     path('auswertung/', views.analytics_view, name='analytics_view'),
 ]

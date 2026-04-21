@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -20,6 +21,11 @@
         .navbar-kjg .navbar-brand, .navbar-kjg .nav-link {
             color: white;
             font-weight: bold;
+        }
+        .navbar-brand-logo {
+            height: 40px;
+            width: auto;
+            margin-right: 10px;
         }
         .btn-kjg {
             background-color: var(--kjg-primary);
@@ -49,7 +55,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-kjg mb-4">
         <div class="container">
-            <a class="navbar-brand" href="/">KjG Pizza</a>
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <img src="{% static 'kjg-logo.png' %}" alt="KjG Logo" class="navbar-brand-logo">
+                <span>KjG Pizza</span>
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

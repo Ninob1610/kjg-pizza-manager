@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Product, Order, OrderItem
 from .forms import OrderForm, OrderItemFormSet
-from django.db.models import Sum, F
+from django.db.models import Sum, F, DurationField, ExpressionWrapper, Q
 from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 def customer_order(request):
     products = Product.objects.all()
@@ -16,6 +17,17 @@ def order_success(request, order_id):
     return render(request, 'orders/order_success.html', {'order': order})
 
 def cashier_dashboard(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        order_id = request.POST.get('order_id')
+
+        if action == 'mark_paid' and order_id:
+            order = get_object_or_404(Order, id=order_id, is_paid=False)
+            order.is_paid = True
+            order.save(update_fields=['is_paid'])
+
+        return redirect('cashier_dashboard')
+
     # Completed orders stay visible until they are paid.
     orders = Order.objects.exclude(status='completed', is_paid=True).order_by('-created_at')
 
@@ -93,7 +105,8 @@ def output_view(request):
         order_id = request.POST.get('order_id')
         order = get_object_or_404(Order, id=order_id, status='ready')
         order.status = 'completed'
-        order.save()
+        order.completed_at = timezone.now()
+        order.save(update_fields=['status', 'completed_at'])
         return redirect('output_view')
 
     return render(request, 'orders/kitchen_view.html', {
@@ -111,7 +124,6 @@ def output_view(request):
 
 def analytics_view(request):
     from django.db.models.functions import ExtractHour
-    from django.db.models import Count
     import json
     from django.core.serializers.json import DjangoJSONEncoder
 
@@ -138,16 +150,68 @@ def analytics_view(request):
     product_labels = [p['product__name'] for p in product_data]
     product_values = [p['total_qty'] for p in product_data]
 
-    # 4. Hourly Activity (Bar Chart)
-    hourly_data = Order.objects.annotate(hour=ExtractHour('created_at')) \
-        .values('hour') \
-        .annotate(count=Count('id')) \
-        .order_by('hour')
-    
-    # Ensure all hours 0-23 are represented
-    hours_dict = {h['hour']: h['count'] for h in hourly_data}
-    hourly_labels = [f"{h}:00" for h in range(24)]
-    hourly_values = [hours_dict.get(h, 0) for h in range(24)]
+    # 4. Pizza Quantity by Hour and Product (Stacked Bar Chart)
+    hourly_pizza_data = OrderItem.objects.filter(product__category='pizza') \
+        .annotate(hour=ExtractHour('order__created_at')) \
+        .values('hour', 'product__name') \
+        .annotate(total_qty=Sum('quantity')) \
+        .order_by('product__name', 'hour')
+
+    hourly_pizza_labels = [f"{h}:00" for h in range(24)]
+    pizza_series = {}
+    for row in hourly_pizza_data:
+        hour = row['hour']
+        if hour is None:
+            continue
+        product_name = row['product__name']
+        if product_name not in pizza_series:
+            pizza_series[product_name] = [0] * 24
+        pizza_series[product_name][hour] = row['total_qty']
+
+    pizza_colors = [
+        '#006d84',
+        '#00b6be',
+        '#E30613',
+        '#198754',
+        '#fd7e14',
+        '#6f42c1',
+        '#0d6efd',
+        '#ffc107',
+    ]
+
+    hourly_pizza_datasets = []
+    for index, product_name in enumerate(sorted(pizza_series.keys())):
+        hourly_pizza_datasets.append({
+            'label': product_name,
+            'data': pizza_series[product_name],
+            'backgroundColor': pizza_colors[index % len(pizza_colors)],
+            'stack': 'pizza',
+        })
+
+    # 5. Average Duration per Pizza from Order Creation to Completion
+    duration_expression = ExpressionWrapper(
+        F('completed_at') - F('created_at'),
+        output_field=DurationField(),
+    )
+    completed_orders = Order.objects.filter(
+        status='completed',
+        completed_at__isnull=False,
+    ).annotate(
+        duration=duration_expression,
+        pizza_qty=Sum('items__quantity', filter=Q(items__product__category='pizza')),
+    )
+
+    avg_completion_minutes = None
+    total_pizza_duration_seconds = 0
+    total_pizza_count = 0
+    for order in completed_orders:
+        if not order.duration or not order.pizza_qty:
+            continue
+        total_pizza_duration_seconds += order.duration.total_seconds() * order.pizza_qty
+        total_pizza_count += order.pizza_qty
+
+    if total_pizza_count > 0:
+        avg_completion_minutes = round((total_pizza_duration_seconds / total_pizza_count) / 60, 1)
 
     context = {
         'stats': stats,
@@ -155,8 +219,9 @@ def analytics_view(request):
         'daily_values': json.dumps(daily_values, cls=DjangoJSONEncoder),
         'product_labels': json.dumps(product_labels),
         'product_values': json.dumps(product_values),
-        'hourly_labels': json.dumps(hourly_labels),
-        'hourly_values': json.dumps(hourly_values),
+        'hourly_pizza_labels': json.dumps(hourly_pizza_labels),
+        'hourly_pizza_datasets': json.dumps(hourly_pizza_datasets),
+        'avg_completion_minutes': avg_completion_minutes,
     }
     
     return render(request, 'orders/analytics.html', context)

@@ -31,6 +31,7 @@ class Order(models.Model):
     notes = models.TextField(blank=True, null=True, verbose_name="Anmerkungen / Extrawünsche")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received')
     created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
     is_paid = models.BooleanField(default=False)
 
     def total_price(self):

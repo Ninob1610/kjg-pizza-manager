@@ -56,6 +56,12 @@
                     <span class="badge bg-success">Ja</span>
                     {% else %}
                     <span class="badge bg-danger">Nein</span>
+                    <form method="post" class="mt-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="mark_paid">
+                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success">Als bezahlt markieren</button>
+                    </form>
                     {% endif %}
                 </td>
             </tr>

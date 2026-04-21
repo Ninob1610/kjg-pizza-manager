@@ -3,6 +3,15 @@
 {% block content %}
 <h2 class="mb-4">Auswertung</h2>
 
+<div class="alert alert-info mb-4" role="status">
+    <strong>Ø Zeit pro Pizza bis Abgeschlossen:</strong>
+    {% if avg_completion_minutes is not None %}
+    {{ avg_completion_minutes }} Minuten
+    {% else %}
+    Noch keine abgeschlossenen Bestellungen mit Zeitstempel vorhanden.
+    {% endif %}
+</div>
+
 <!-- Charts Section -->
 <div class="row mb-4">
     <div class="col-md-6 mb-4">
@@ -23,7 +32,7 @@
     </div>
     <div class="col-12 mb-4">
         <div class="card h-100">
-            <div class="card-header card-header-kjg">Bestellungen nach Tageszeit</div>
+            <div class="card-header card-header-kjg">Pizzen nach Tageszeit (pro Sorte)</div>
             <div class="card-body">
                 <canvas id="hourlyChart" style="max-height: 300px;"></canvas>
             </div>
@@ -124,22 +133,19 @@
         }
     });
 
-    // 3. Hourly Activity Chart
+    // 3. Pizzas by Hour Chart
     const ctxHourly = document.getElementById('hourlyChart').getContext('2d');
     new Chart(ctxHourly, {
         type: 'bar',
         data: {
-            labels: {{ hourly_labels|safe }},
-            datasets: [{
-                label: 'Anzahl Bestellungen',
-                data: {{ hourly_values|safe }},
-                backgroundColor: kjgSecondary,
-            }]
+            labels: {{ hourly_pizza_labels|safe }},
+            datasets: {{ hourly_pizza_datasets|safe }}
         },
         options: {
             responsive: true,
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                x: { stacked: true },
+                y: { beginAtZero: true, stacked: true, ticks: { stepSize: 1 } }
             }
         }
     });

@@ -1,6 +1,8 @@
 from django.test import TestCase
 
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 from .forms import OrderForm
 from .models import Order, OrderItem, Product
@@ -119,6 +121,7 @@ class StationWorkflowTests(TestCase):
 		self.assertRedirects(response, reverse('output_view'))
 		order.refresh_from_db()
 		self.assertEqual(order.status, 'completed')
+		self.assertIsNotNone(order.completed_at)
 
 	def test_station_view_rejects_wrong_status(self):
 		order = self.create_order('ready')
@@ -128,3 +131,30 @@ class StationWorkflowTests(TestCase):
 		self.assertEqual(response.status_code, 404)
 		order.refresh_from_db()
 		self.assertEqual(order.status, 'ready')
+
+	def test_cashier_can_mark_unpaid_order_as_paid(self):
+		order = Order.objects.create(customer_name='Nora', status='completed', is_paid=False)
+		OrderItem.objects.create(order=order, product=self.product, quantity=1)
+
+		response = self.client.post(reverse('cashier_dashboard'), {
+			'action': 'mark_paid',
+			'order_id': str(order.id),
+		})
+
+		self.assertRedirects(response, reverse('cashier_dashboard'))
+		order.refresh_from_db()
+		self.assertTrue(order.is_paid)
+
+	def test_analytics_contains_average_completion_minutes(self):
+		order = Order.objects.create(customer_name='Eva', status='completed', is_paid=True)
+		OrderItem.objects.create(order=order, product=self.product, quantity=2)
+		Order.objects.filter(id=order.id).update(
+			created_at=timezone.now() - timedelta(minutes=20),
+			completed_at=timezone.now() - timedelta(minutes=5),
+		)
+
+		response = self.client.get(reverse('analytics_view'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertIsNotNone(response.context['avg_completion_minutes'])
+		self.assertAlmostEqual(response.context['avg_completion_minutes'], 15.0, places=1)

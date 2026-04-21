@@ -17,12 +17,11 @@
                 <th>Preis</th>
                 <th>Status</th>
                 <th>Bezahlt?</th>
-                <th>Aktionen</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
-            <tr>
+            <tr{% if order.status == 'completed' and not order.is_paid %} class="table-warning"{% endif %}>
                 <td>{{ order.id }}</td>
                 <td>{{ order.customer_name|default:"-" }}</td>
                 <td>{{ order.get_order_type_display }}</td>
@@ -48,6 +47,9 @@
                     <span class="status-{{ order.status }}">
                         {{ order.get_status_display }}
                     </span>
+                    {% if order.status == 'completed' and not order.is_paid %}
+                    <span class="badge text-bg-warning ms-2">Offen</span>
+                    {% endif %}
                 </td>
                 <td>
                     {% if order.is_paid %}
@@ -56,19 +58,10 @@
                     <span class="badge bg-danger">Nein</span>
                     {% endif %}
                 </td>
-                <td>
-                    <form method="post" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="order_id" value="{{ order.id }}">
-                        {% if not order.is_paid %}
-                        <button type="submit" name="mark_paid" class="btn btn-sm btn-outline-success mb-1">Als bezahlt markieren</button>
-                        {% endif %}
-                    </form>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="8" class="text-center">Keine aktiven Bestellungen.</td>
+                <td colspan="7" class="text-center">Keine aktiven Bestellungen.</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -46,6 +46,12 @@
                         {{ form.customer_name.errors }}
                         <div class="form-text" id="customer-name-hint">Optional bei normalen Bestellungen.</div>
                     </div>
+                    <div class="mb-3 form-check">
+                        {{ form.is_paid }}
+                        <label class="form-check-label" for="id_is_paid">Bereits bezahlt</label>
+                        {{ form.is_paid.errors }}
+                        <div class="form-text">Abwählen, wenn die Bestellung noch offen ist.</div>
+                    </div>
                     <div class="mb-3">
                         {{ form.notes.label_tag }}
                         {{ form.notes }}
@@ -106,6 +112,7 @@
         updateCustomerNameRequirement();
         updateUI();
     });
+    document.getElementById('id_is_paid').addEventListener('change', updateCustomerNameRequirement);
 
     document.querySelectorAll('.change-qty').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -140,12 +147,13 @@
 
     function updateCustomerNameRequirement() {
         const orderType = getCurrentOrderType();
+        const isPaid = document.getElementById('id_is_paid').checked;
         const customerNameField = document.getElementById('id_customer_name');
         const hint = document.getElementById('customer-name-hint');
 
-        if (orderType === 'kjgler' || orderType === 'purchase') {
+        if (orderType === 'kjgler' || orderType === 'purchase' || !isPaid) {
             customerNameField.required = true;
-            hint.textContent = 'Pflichtfeld für KjGler- und Einkaufspreis-Bestellungen.';
+            hint.textContent = 'Pflichtfeld für unbezahlte, KjGler- und Einkaufspreis-Bestellungen.';
         } else {
             customerNameField.required = false;
             hint.textContent = 'Optional bei normalen Bestellungen.';

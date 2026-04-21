@@ -16,15 +16,8 @@ def order_success(request, order_id):
     return render(request, 'orders/order_success.html', {'order': order})
 
 def cashier_dashboard(request):
-    orders = Order.objects.exclude(status='completed').order_by('-created_at')
-    
-    if request.method == 'POST':
-        if 'mark_paid' in request.POST:
-            order_id = request.POST.get('order_id')
-            order = get_object_or_404(Order, id=order_id)
-            order.is_paid = True
-            order.save()
-            return redirect('cashier_dashboard')
+    # Completed orders stay visible until they are paid.
+    orders = Order.objects.exclude(status='completed', is_paid=True).order_by('-created_at')
 
     return render(request, 'orders/cashier_dashboard.html', {'orders': orders})
 

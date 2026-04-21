@@ -35,12 +35,21 @@
                 <form method="post" id="cashier-form">
                     {% csrf_token %}
                     <div class="mb-3">
+                        {{ form.order_type.label_tag }}
+                        {{ form.order_type }}
+                        {{ form.order_type.errors }}
+                        <div class="form-text">KjGler-Pizza ist kostenlos, Einkaufspreis-Pizza nutzt den hinterlegten Einkaufspreis.</div>
+                    </div>
+                    <div class="mb-3">
                         {{ form.customer_name.label_tag }}
                         {{ form.customer_name }}
+                        {{ form.customer_name.errors }}
+                        <div class="form-text" id="customer-name-hint">Optional bei normalen Bestellungen.</div>
                     </div>
                     <div class="mb-3">
                         {{ form.notes.label_tag }}
                         {{ form.notes }}
+                        {{ form.notes.errors }}
                         <div class="form-text">Optional: Allgemeiner Hinweis zur gesamten Bestellung.</div>
                     </div>
 
@@ -82,12 +91,21 @@
 <script>
     const products = {
         {% for p in products %}
-        "{{ p.id }}": { name: "{{ p.name }}", price: {{ p.price|stringformat:".2f" }} },
+        "{{ p.id }}": {
+            name: "{{ p.name }}",
+            price: {{ p.price|stringformat:".2f" }},
+            purchase_price: {% if p.purchase_price is not None %}{{ p.purchase_price|stringformat:".2f" }}{% else %}null{% endif %}
+        },
         {% endfor %}
     };
     const quantities = {};
     const itemNotes = {};
     let currentTotal = 0;
+
+    document.getElementById('id_order_type').addEventListener('change', () => {
+        updateCustomerNameRequirement();
+        updateUI();
+    });
 
     document.querySelectorAll('.change-qty').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -104,6 +122,35 @@
 
     // Add event listener for cash input
     document.getElementById('cash-paid').addEventListener('input', calculateChange);
+
+    function getCurrentOrderType() {
+        return document.getElementById('id_order_type').value;
+    }
+
+    function getUnitPrice(product) {
+        const orderType = getCurrentOrderType();
+        if (orderType === 'kjgler') {
+            return 0;
+        }
+        if (orderType === 'purchase') {
+            return product.purchase_price !== null ? product.purchase_price : product.price;
+        }
+        return product.price;
+    }
+
+    function updateCustomerNameRequirement() {
+        const orderType = getCurrentOrderType();
+        const customerNameField = document.getElementById('id_customer_name');
+        const hint = document.getElementById('customer-name-hint');
+
+        if (orderType === 'kjgler' || orderType === 'purchase') {
+            customerNameField.required = true;
+            hint.textContent = 'Pflichtfeld für KjGler- und Einkaufspreis-Bestellungen.';
+        } else {
+            customerNameField.required = false;
+            hint.textContent = 'Optional bei normalen Bestellungen.';
+        }
+    }
 
     function calculateChange() {
         const cashInput = document.getElementById('cash-paid').value;
@@ -153,7 +200,8 @@
             if (qty > 0) {
                 hasItems = true;
                 const p = products[id];
-                const lineTotal = p.price * qty;
+                const unitPrice = getUnitPrice(p);
+                const lineTotal = unitPrice * qty;
                 total += lineTotal;
 
                 // Add to summary
@@ -197,5 +245,8 @@
         // Recalculate change when total changes
         calculateChange();
     }
+
+    updateCustomerNameRequirement();
+    updateUI();
 </script>
 {% endblock %}

@@ -3,7 +3,7 @@ from .models import Product, Order, OrderItem
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category')
+    list_display = ('name', 'price', 'purchase_price', 'category')
     list_filter = ('category',)
     search_fields = ('name',)
 
@@ -14,8 +14,8 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer_name', 'status', 'total_price', 'created_at', 'is_paid')
-    list_filter = ('status', 'is_paid', 'created_at')
+    list_display = ('id', 'customer_name', 'order_type', 'status', 'total_price', 'created_at', 'is_paid')
+    list_filter = ('order_type', 'status', 'is_paid', 'created_at')
     search_fields = ('customer_name', 'id')
     inlines = [OrderItemInline]
     actions = ['mark_as_paid']

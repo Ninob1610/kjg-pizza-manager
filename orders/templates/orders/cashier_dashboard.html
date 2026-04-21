@@ -12,6 +12,7 @@
             <tr>
                 <th>#</th>
                 <th>Name</th>
+                <th>Typ</th>
                 <th>Bestellung</th>
                 <th>Preis</th>
                 <th>Status</th>
@@ -24,6 +25,7 @@
             <tr>
                 <td>{{ order.id }}</td>
                 <td>{{ order.customer_name|default:"-" }}</td>
+                <td>{{ order.get_order_type_display }}</td>
                 <td>
                     {% if order.notes %}
                     <div class="text-info small mb-1">
@@ -66,7 +68,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="text-center">Keine aktiven Bestellungen.</td>
+                <td colspan="8" class="text-center">Keine aktiven Bestellungen.</td>
             </tr>
             {% endfor %}
         </tbody>

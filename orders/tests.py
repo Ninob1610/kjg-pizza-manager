@@ -9,6 +9,7 @@ from .models import Order, OrderItem, Product
 class OrderFormTests(TestCase):
 	def test_form_saves_paid_status_from_intake(self):
 		form = OrderForm(data={
+			'order_type': 'regular',
 			'customer_name': 'Anna',
 			'notes': 'Ohne Zwiebeln',
 		})
@@ -18,13 +19,31 @@ class OrderFormTests(TestCase):
 
 		self.assertTrue(order.is_paid)
 
+	def test_name_required_for_kjgler_and_purchase_orders(self):
+		kjgler_form = OrderForm(data={
+			'order_type': 'kjgler',
+			'customer_name': '',
+			'notes': '',
+		})
+		purchase_form = OrderForm(data={
+			'order_type': 'purchase',
+			'customer_name': '',
+			'notes': '',
+		})
+
+		self.assertFalse(kjgler_form.is_valid())
+		self.assertIn('customer_name', kjgler_form.errors)
+		self.assertFalse(purchase_form.is_valid())
+		self.assertIn('customer_name', purchase_form.errors)
+
 
 class StationWorkflowTests(TestCase):
 	def setUp(self):
-		self.product = Product.objects.create(name='Salami', price='8.50', category='pizza')
+		self.product = Product.objects.create(name='Salami', price='8.50', purchase_price='5.00', category='pizza')
 
 	def test_cashier_order_stores_item_note_per_product(self):
 		response = self.client.post(reverse('create_order_cashier'), {
+			'order_type': 'regular',
 			'customer_name': 'Lina',
 			'notes': 'Bitte schnell',
 			f'product_{self.product.id}': '2',
@@ -36,6 +55,32 @@ class StationWorkflowTests(TestCase):
 		item = order.items.get(product=self.product)
 		self.assertEqual(item.quantity, 2)
 		self.assertEqual(item.notes, 'ohne Zwiebeln')
+
+	def test_kjgler_order_is_free(self):
+		response = self.client.post(reverse('create_order_cashier'), {
+			'order_type': 'kjgler',
+			'customer_name': 'Tom',
+			'notes': '',
+			f'product_{self.product.id}': '2',
+		})
+
+		self.assertRedirects(response, reverse('cashier_dashboard'))
+		order = Order.objects.latest('id')
+		self.assertEqual(order.order_type, 'kjgler')
+		self.assertEqual(order.total_price(), 0)
+
+	def test_purchase_order_uses_purchase_price(self):
+		response = self.client.post(reverse('create_order_cashier'), {
+			'order_type': 'purchase',
+			'customer_name': 'Partner X',
+			'notes': '',
+			f'product_{self.product.id}': '3',
+		})
+
+		self.assertRedirects(response, reverse('cashier_dashboard'))
+		order = Order.objects.latest('id')
+		self.assertEqual(order.order_type, 'purchase')
+		self.assertEqual(float(order.total_price()), 15.0)
 
 	def create_order(self, status):
 		order = Order.objects.create(customer_name='Max', status=status, is_paid=True)

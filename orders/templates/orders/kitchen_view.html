@@ -10,7 +10,7 @@
             {% if simple_ready_view %}
             Person D übergibt die fertigen Bestellungen an den Kunden.
             {% else %}
-            Person B sieht, was aktuell bearbeitet wird. Danach geht es als Belegt &amp; Ofenready weiter.
+            Person B sieht, was aktuell bearbeitet wird. Danach geht es als belegt &amp; ofenbereit weiter.
             {% endif %}
         </p>
     </div>
@@ -61,7 +61,7 @@
                     <button type="submit" class="btn btn-warning w-100">Starten</button>
                     {% elif order.status == 'topping' %}
                     <input type="hidden" name="next_status" value="ready">
-                    <button type="submit" class="btn btn-success w-100">Belegt &amp; Ofenready</button>
+                    <button type="submit" class="btn btn-success w-100">Belegt &amp; ofenbereit</button>
                     {% endif %}
                 </form>
             </div>

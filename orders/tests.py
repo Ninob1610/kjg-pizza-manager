@@ -41,6 +41,12 @@ class StationWorkflowTests(TestCase):
 	def setUp(self):
 		self.product = Product.objects.create(name='Salami', price='8.50', purchase_price='5.00', category='pizza')
 
+	def test_analytics_view_is_accessible_without_login(self):
+		response = self.client.get(reverse('analytics_view'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Auswertung')
+
 	def test_cashier_order_stores_item_note_per_product(self):
 		response = self.client.post(reverse('create_order_cashier'), {
 			'order_type': 'regular',

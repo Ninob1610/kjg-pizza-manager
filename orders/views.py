@@ -3,7 +3,6 @@ from .models import Product, Order, OrderItem
 from .forms import OrderForm, OrderItemFormSet
 from django.db.models import Sum, F
 from django.db.models.functions import TruncDate
-from django.contrib.admin.views.decorators import staff_member_required
 
 def customer_order(request):
     products = Product.objects.all()
@@ -117,7 +116,6 @@ def output_view(request):
         'simple_ready_view': True,
     })
 
-@staff_member_required
 def analytics_view(request):
     from django.db.models.functions import ExtractHour
     from django.db.models import Count

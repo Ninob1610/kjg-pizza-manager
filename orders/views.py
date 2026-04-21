@@ -1,9 +1,57 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Product, Order, OrderItem
+from types import SimpleNamespace
+
+from .models import Product, Order, OrderItem, OrderItemStatusLog
 from .forms import OrderForm, OrderItemFormSet
 from django.db.models import Sum, F, DurationField, ExpressionWrapper, Q
 from django.db.models.functions import TruncDate
-from django.utils import timezone
+
+
+def _apply_item_action(item, action):
+    action_map = {
+        'start': ('topping', 'start'),
+        'ready': ('ready', 'ready'),
+        'complete': ('completed', 'complete'),
+        'fail': ('failed', 'fail'),
+        'reset': ('received', 'reset'),
+    }
+
+    if action not in action_map:
+        return False
+
+    new_status, log_action = action_map[action]
+    return item.change_status(new_status, log_action)
+
+
+def _bulk_advance_order(order, next_status):
+    if next_status == 'topping':
+        for item in order.items.exclude(status='completed').filter(status='received'):
+            item.change_status('topping', 'start')
+    elif next_status == 'ready':
+        for item in order.items.exclude(status='completed').filter(status='topping'):
+            item.change_status('ready', 'ready')
+
+    order.recalculate_status()
+
+
+def _build_display_orders(orders, mode):
+    display_orders = []
+
+    for order in orders:
+        visible_items = []
+
+        for item in order.items.all():
+            if mode == 'kitchen' and item.status in ['ready', 'completed']:
+                continue
+            if mode == 'output' and item.status != 'ready':
+                continue
+
+            visible_items.append(item)
+
+        if visible_items:
+            display_orders.append(SimpleNamespace(order=order, items=visible_items))
+
+    return display_orders
 
 def customer_order(request):
     products = Product.objects.all()
@@ -73,28 +121,39 @@ def create_order_cashier(request):
     })
 
 def kitchen_view(request):
-    orders = Order.objects.filter(status__in=['received', 'topping']).order_by('created_at')
+    orders = Order.objects.exclude(status='completed').order_by('created_at')
 
     if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        item_action = request.POST.get('item_action')
         order_id = request.POST.get('order_id')
-        order = get_object_or_404(Order, id=order_id, status__in=['received', 'topping'])
         next_status = request.POST.get('next_status')
+
+        if item_id and item_action:
+            item = get_object_or_404(OrderItem.objects.select_related('order'), id=item_id, order__status__in=['received', 'topping', 'ready'])
+            _apply_item_action(item, item_action)
+            return redirect('kitchen_view')
+
+        if not order_id:
+            return redirect('kitchen_view')
+
+        order = get_object_or_404(Order.objects.prefetch_related('items'), id=order_id, status__in=['received', 'topping', 'ready'])
 
         if not next_status:
             next_status = 'topping' if order.status == 'received' else 'ready'
 
         if order.status == 'received' and next_status == 'topping':
-            order.status = 'topping'
-        elif order.status == 'topping' and next_status == 'ready':
-            order.status = 'ready'
+            _bulk_advance_order(order, 'topping')
+        elif order.status in ['received', 'topping'] and next_status == 'ready':
+            _bulk_advance_order(order, 'ready')
         else:
             return redirect('kitchen_view')
 
-        order.save()
         return redirect('kitchen_view')
 
     return render(request, 'orders/kitchen_view.html', {
-        'orders': orders,
+        'orders': _build_display_orders(orders, 'kitchen'),
+        'failed_logs': OrderItemStatusLog.objects.filter(action='fail').select_related('order_item__order', 'order_item__product').order_by('-created_at')[:10],
     })
 
 
@@ -102,15 +161,24 @@ def output_view(request):
     orders = Order.objects.filter(status='ready').order_by('created_at')
 
     if request.method == 'POST':
+        item_id = request.POST.get('item_id')
+        item_action = request.POST.get('item_action')
         order_id = request.POST.get('order_id')
-        order = get_object_or_404(Order, id=order_id, status='ready')
-        order.status = 'completed'
-        order.completed_at = timezone.now()
-        order.save(update_fields=['status', 'completed_at'])
+        if item_id and item_action:
+            item = get_object_or_404(OrderItem.objects.select_related('order'), id=item_id, order__status='ready')
+            _apply_item_action(item, item_action)
+            return redirect('output_view')
+
+        if not order_id:
+            return redirect('output_view')
+
+        order = get_object_or_404(Order.objects.prefetch_related('items'), id=order_id, status='ready')
+        for item in order.items.filter(status='ready'):
+            item.change_status('completed', 'complete')
         return redirect('output_view')
 
     return render(request, 'orders/kitchen_view.html', {
-        'orders': orders,
+        'orders': _build_display_orders(orders, 'output'),
         'page_title': 'Ausgabe',
         'page_subtitle': 'Person D übergibt die fertigen Bestellungen an den Kunden.',
         'button_label': 'Ausgegeben',
@@ -120,6 +188,7 @@ def output_view(request):
         'header_text_class': 'text-white',
         'button_class': 'btn-primary',
         'simple_ready_view': True,
+        'failed_logs': OrderItemStatusLog.objects.filter(action='fail').select_related('order_item__order', 'order_item__product').order_by('-created_at')[:10],
     })
 
 def analytics_view(request):

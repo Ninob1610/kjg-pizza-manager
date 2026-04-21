@@ -8,62 +8,126 @@
         <h2 class="mb-1">{% if simple_ready_view %}Ausgabe{% else %}Belegen{% endif %}</h2>
         <p class="text-muted mb-0">
             {% if simple_ready_view %}
-            Person D übergibt die fertigen Bestellungen an den Kunden.
+            Person D übergibt die fertigen Pizzen an den Kunden.
             {% else %}
-            Person B sieht, was aktuell bearbeitet wird. Danach geht es als belegt &amp; ofenbereit weiter.
+            Person B sieht, was aktuell bearbeitet wird. Einzelne Pizzen können unabhängig weitergeschoben, als fehlgeschlagen markiert oder zurückgesetzt werden.
             {% endif %}
         </p>
     </div>
 </div>
 
+<div class="alert alert-secondary py-2 small mb-3">
+    Tastatur: <strong>1-9</strong> bearbeitet die nächste Pizza der Bestellung mit derselben Nummer. Mehrfach drücken arbeitet große Bestellungen Pizza für Pizza ab. Mit <strong>Umschalt+1-9</strong> nimmst du die Zweitaktion der obersten Pizza dieser Bestellung.
+</div>
+
 <div class="row">
     {% for order in orders %}
     <div class="col-md-4 mb-4">
-        <div class="card h-100 {{ card_border_class }}">
+        <div class="card h-100 {{ card_border_class }}" data-order-hotkey="{{ forloop.counter }}">
             <div class="card-header {{ header_class }} {{ header_text_class }}">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <span class="badge bg-dark me-2">{{ forloop.counter }}</span>
-                        #{{ order.id }} {{ order.customer_name }}
+                        #{{ order.order.id }} {{ order.order.customer_name }}
                     </h5>
-                    <span>{{ order.created_at|date:"H:i" }}</span>
+                    <span>{{ order.order.created_at|date:"H:i" }}</span>
                 </div>
             </div>
             <div class="card-body">
-                {% if order.notes %}
+                {% if order.order.notes %}
                 <div class="alert alert-info mb-3">
                     <strong>Extrawünsche:</strong><br>
-                    {{ order.notes|linebreaksbr }}
+                    {{ order.order.notes|linebreaksbr }}
                 </div>
                 {% endif %}
                 <ul class="list-group list-group-flush">
-                    {% for item in order.items.all %}
+                    {% for item in order.items %}
                     <li class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-center">
-                            {{ item.product.name }}
-                            <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="fw-semibold">{{ item.product.name }}</div>
+                                <div class="small text-muted">{{ item.get_status_display }}</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <span class="badge bg-primary rounded-pill">{{ item.quantity }}</span>
+                                <span class="badge {% if item.status == 'failed' %}bg-danger{% elif item.status == 'completed' %}bg-success{% elif item.status == 'ready' %}bg-info text-dark{% elif item.status == 'topping' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ item.get_status_display }}</span>
+                            </div>
                         </div>
                         {% if item.notes %}
                         <div class="small text-info mt-1"><strong>Extrawunsch:</strong> {{ item.notes|linebreaksbr }}</div>
                         {% endif %}
+                        <div class="mt-2 d-flex flex-wrap gap-2">
+                            {% if simple_ready_view %}
+                                {% if item.status == 'ready' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="complete">
+                                    <button type="submit" class="btn btn-sm {{ button_class }}">{{ button_label }}</button>
+                                </form>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="fail">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Fehlgeschlagen</button>
+                                </form>
+                                {% elif item.status == 'failed' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="reset">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Zurücksetzen</button>
+                                </form>
+                                {% elif item.status == 'completed' %}
+                                <span class="badge bg-secondary align-self-center">Bereits ausgegeben</span>
+                                {% endif %}
+                            {% else %}
+                                {% if item.status == 'received' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="start">
+                                    <button type="submit" class="btn btn-sm btn-warning">Starten</button>
+                                </form>
+                                {% elif item.status == 'topping' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="ready">
+                                    <button type="submit" class="btn btn-sm btn-success">Belegt &amp; ofenbereit</button>
+                                </form>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="fail">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Fehlgeschlagen</button>
+                                </form>
+                                {% elif item.status == 'ready' %}
+                                <span class="badge bg-success align-self-center">Bereit zur Ausgabe</span>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="fail">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Fehlgeschlagen</button>
+                                </form>
+                                {% elif item.status == 'failed' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                                    <input type="hidden" name="item_action" value="reset">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Zurücksetzen</button>
+                                </form>
+                                {% elif item.status == 'completed' %}
+                                <span class="badge bg-secondary align-self-center">Bereits ausgegeben</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
             </div>
-            <div class="card-footer">
-                <form method="post" id="form-{{ forloop.counter }}">
-                    {% csrf_token %}
-                    <input type="hidden" name="order_id" value="{{ order.id }}">
-                    {% if simple_ready_view %}
-                    <button type="submit" class="btn {{ button_class }} w-100">{{ button_label }}</button>
-                    {% elif order.status == 'received' %}
-                    <input type="hidden" name="next_status" value="topping">
-                    <button type="submit" class="btn btn-warning w-100">Starten</button>
-                    {% elif order.status == 'topping' %}
-                    <input type="hidden" name="next_status" value="ready">
-                    <button type="submit" class="btn btn-success w-100">Belegt &amp; ofenbereit</button>
-                    {% endif %}
-                </form>
+            <div class="card-footer small text-muted">
+                Bestellung: {{ order.get_status_display }}
             </div>
         </div>
     </div>
@@ -79,17 +143,65 @@
     </div>
     {% endfor %}
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
     document.addEventListener('keydown', function(event) {
-        if (event.key >= '1' && event.key <= '9') {
-            const form = document.getElementById('form-' + event.key);
-            if (form) {
-                form.submit();
-            }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            return;
+        }
+
+        if (event.key < '1' || event.key > '9') {
+            return;
+        }
+
+        const orderCard = document.querySelector('[data-order-hotkey="' + event.key + '"]');
+        if (!orderCard) {
+            return;
+        }
+
+        const forms = Array.from(orderCard.querySelectorAll('form'));
+        if (!forms.length) {
+            return;
+        }
+
+        const form = forms[Math.min(event.shiftKey ? 1 : 0, forms.length - 1)];
+
+        if (form) {
+            event.preventDefault();
+            form.submit();
         }
     });
 </script>
+
+{% if failed_logs %}
+<div class="card border-danger mt-4">
+    <div class="card-header bg-danger text-white">
+        Protokoll fehlerhafter Pizzen
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for log in failed_logs %}
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <div class="fw-semibold">#{{ log.order_item.order.id }} {{ log.order_item.product.name }}</div>
+                <div class="small text-muted">
+                    {{ log.order_item.order.customer_name }} · {{ log.created_at|date:"d.m.Y H:i" }}
+                </div>
+            </div>
+            {% if log.order_item.status == 'failed' %}
+            <form method="post" class="d-inline">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" value="{{ log.order_item.id }}">
+                <input type="hidden" name="item_action" value="reset">
+                <button type="submit" class="btn btn-sm btn-outline-secondary">Zurücksetzen</button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="text-muted small mt-3">
+    Die Nummern beziehen sich immer auf die aktuell sichtbaren Pizzen von oben nach unten. Sobald eine Pizza fertig ist, verschwindet sie aus der Belegenansicht.
+</div>
 {% endblock %}

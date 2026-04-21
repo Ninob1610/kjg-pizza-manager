@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .forms import OrderForm
-from .models import Order, OrderItem, Product
+from .models import Order, OrderItem, OrderItemStatusLog, Product
 
 
 class OrderFormTests(TestCase):
@@ -90,33 +90,82 @@ class StationWorkflowTests(TestCase):
 		self.assertEqual(order.order_type, 'purchase')
 		self.assertEqual(float(order.total_price()), 15.0)
 
-	def create_order(self, status):
+	def create_order(self, status, item_count=1):
 		order = Order.objects.create(customer_name='Max', status=status, is_paid=True)
-		OrderItem.objects.create(order=order, product=self.product, quantity=1)
-		return order
+		items = []
+		for _ in range(item_count):
+			items.append(OrderItem.objects.create(order=order, product=self.product, quantity=1))
+		return order, items
 
 	def test_topping_board_advances_received_orders_to_topping(self):
-		order = self.create_order('received')
+		order, items = self.create_order('received')
 
-		response = self.client.post(reverse('kitchen_view'), {'order_id': order.id})
+		response = self.client.post(reverse('kitchen_view'), {
+			'item_id': items[0].id,
+			'item_action': 'start',
+		})
 
 		self.assertRedirects(response, reverse('kitchen_view'))
+		items[0].refresh_from_db()
 		order.refresh_from_db()
+		self.assertEqual(items[0].status, 'topping')
 		self.assertEqual(order.status, 'topping')
 
 	def test_topping_board_advances_topping_orders_to_ready(self):
-		order = self.create_order('topping')
+		order, items = self.create_order('topping')
 
-		response = self.client.post(reverse('kitchen_view'), {'order_id': order.id})
+		response = self.client.post(reverse('kitchen_view'), {
+			'item_id': items[0].id,
+			'item_action': 'ready',
+		})
 
 		self.assertRedirects(response, reverse('kitchen_view'))
+		items[0].refresh_from_db()
 		order.refresh_from_db()
+		self.assertEqual(items[0].status, 'ready')
 		self.assertEqual(order.status, 'ready')
 
-	def test_output_board_advances_ready_orders_to_completed(self):
-		order = self.create_order('ready')
+	def test_kitchen_view_uses_flat_shortcuts_for_visible_pizzas(self):
+		first_order = Order.objects.create(customer_name='Erste', status='received', is_paid=True)
+		first_visible = OrderItem.objects.create(order=first_order, product=self.product, quantity=1)
+		first_hidden = OrderItem.objects.create(order=first_order, product=self.product, quantity=1)
+		first_hidden.change_status('ready', 'ready')
 
-		response = self.client.post(reverse('output_view'), {'order_id': order.id})
+		second_order = Order.objects.create(customer_name='Zweite', status='received', is_paid=True)
+		second_visible = OrderItem.objects.create(order=second_order, product=self.product, quantity=1)
+
+		response = self.client.get(reverse('kitchen_view'))
+
+		self.assertEqual(response.status_code, 200)
+		display_orders = response.context['orders']
+		self.assertEqual(len(display_orders), 2)
+		self.assertEqual(display_orders[0].order.id, first_order.id)
+		self.assertEqual(display_orders[0].items[0].id, first_visible.id)
+		self.assertEqual(len(display_orders[0].items), 1)
+		self.assertEqual(display_orders[1].order.id, second_order.id)
+		self.assertEqual(display_orders[1].items[0].id, second_visible.id)
+		self.assertNotIn(first_hidden.id, [item.id for item in display_orders[0].items])
+
+	def test_output_board_advances_ready_orders_to_completed(self):
+		order, items = self.create_order('received', item_count=2)
+		for item in items:
+			item.change_status('ready', 'ready')
+
+		response = self.client.post(reverse('output_view'), {
+			'item_id': items[0].id,
+			'item_action': 'complete',
+		})
+
+		self.assertRedirects(response, reverse('output_view'))
+		items[0].refresh_from_db()
+		order.refresh_from_db()
+		self.assertEqual(items[0].status, 'completed')
+		self.assertEqual(order.status, 'ready')
+
+		response = self.client.post(reverse('output_view'), {
+			'item_id': items[1].id,
+			'item_action': 'complete',
+		})
 
 		self.assertRedirects(response, reverse('output_view'))
 		order.refresh_from_db()
@@ -124,13 +173,44 @@ class StationWorkflowTests(TestCase):
 		self.assertIsNotNone(order.completed_at)
 
 	def test_station_view_rejects_wrong_status(self):
-		order = self.create_order('ready')
+		order, items = self.create_order('ready')
+		items[0].change_status('completed', 'complete')
 
-		response = self.client.post(reverse('kitchen_view'), {'order_id': order.id})
+		response = self.client.post(reverse('kitchen_view'), {
+			'item_id': items[0].id,
+			'item_action': 'start',
+		})
 
 		self.assertEqual(response.status_code, 404)
 		order.refresh_from_db()
-		self.assertEqual(order.status, 'ready')
+		self.assertEqual(order.status, 'completed')
+
+	def test_failed_item_can_be_reset_and_logged(self):
+		order, items = self.create_order('received')
+
+		response = self.client.post(reverse('kitchen_view'), {
+			'item_id': items[0].id,
+			'item_action': 'fail',
+		})
+
+		self.assertRedirects(response, reverse('kitchen_view'))
+		items[0].refresh_from_db()
+		order.refresh_from_db()
+		self.assertEqual(items[0].status, 'failed')
+		self.assertEqual(order.status, 'topping')
+		self.assertEqual(OrderItemStatusLog.objects.filter(order_item=items[0], action='fail').count(), 1)
+
+		response = self.client.post(reverse('kitchen_view'), {
+			'item_id': items[0].id,
+			'item_action': 'reset',
+		})
+
+		self.assertRedirects(response, reverse('kitchen_view'))
+		items[0].refresh_from_db()
+		order.refresh_from_db()
+		self.assertEqual(items[0].status, 'received')
+		self.assertEqual(order.status, 'received')
+		self.assertEqual(OrderItemStatusLog.objects.filter(order_item=items[0], action='reset').count(), 1)
 
 	def test_cashier_can_mark_unpaid_order_as_paid(self):
 		order = Order.objects.create(customer_name='Nora', status='completed', is_paid=False)

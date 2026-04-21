@@ -127,3 +127,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Allow all hosts for local network access
 ALLOWED_HOSTS = ['*']
+
+# Trusted origins for CSRF checks behind reverse proxy/domain.
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.n-beck.de',
+    'https://pizzapronto.n-beck.de',
+    'http://pizzapronto.n-beck.de',
+]
+
+# Respect HTTPS and host forwarded by reverse proxy (e.g. nginx/traefik).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True

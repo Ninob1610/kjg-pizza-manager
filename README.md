@@ -69,6 +69,12 @@ Das System ist in verschiedene Ansichten unterteilt, um den Arbeitsfluss zu opti
     Beim ersten Start wird automatisch ein Standard-Admin erstellt, falls noch keiner existiert.
     Login: `admin` / `admin`
 
+    Beim Start werden außerdem die vier Standard-Pizzasorten angelegt oder aktualisiert:
+    * Margherita
+    * Mary
+    * Prosciutto
+    * Spezial
+
     Wenn du stattdessen oder zusätzlich einen eigenen Admin anlegen möchtest:
     ```bash
     python manage.py createsuperuser

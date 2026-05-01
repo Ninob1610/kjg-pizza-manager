@@ -74,6 +74,13 @@ Beim ersten Start wird automatisch ein Standard-Admin-Benutzer erstellt, falls n
 *   **Benutzername:** `admin`
 *   **Passwort:** `admin`
 
+Zusätzlich werden beim Start die vier Standard-Pizzasorten angelegt oder aktualisiert:
+
+*   Margherita
+*   Mary
+*   Prosciutto
+*   Spezial
+
 Bitte ändere das Passwort nach dem ersten Login unter `http://<RASPBERRY_PI_IP>:8000/admin/`!
 
 Falls du einen weiteren Admin manuell erstellen möchtest:

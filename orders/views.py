@@ -330,7 +330,7 @@ def analytics_view(request):
         avg_completion_minutes = round((total_pizza_duration_seconds / total_pizza_count) / 60, 1)
 
     # 6. Übersicht: Anzahl KjG- und Einkaufspreis-Pizzen (Anzahl)
-    from django.db.models import IntegerField
+    regular_count = OrderItem.objects.filter(product__category='pizza', order__order_type='regular').aggregate(total=Sum('quantity'))['total'] or 0
     kjg_count = OrderItem.objects.filter(product__category='pizza', order__order_type='kjgler').aggregate(total=Sum('quantity'))['total'] or 0
     purchase_count = OrderItem.objects.filter(product__category='pizza', order__order_type='purchase').aggregate(total=Sum('quantity'))['total'] or 0
 
@@ -343,6 +343,7 @@ def analytics_view(request):
         'hourly_pizza_labels': json.dumps(hourly_pizza_labels),
         'hourly_pizza_datasets': json.dumps(hourly_pizza_datasets),
         'avg_completion_minutes': avg_completion_minutes,
+        'regular_pizza_count': regular_count,
         'kjg_pizza_count': kjg_count,
         'purchase_pizza_count': purchase_count,
     }

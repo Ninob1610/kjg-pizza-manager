@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 from .models import Product, Order, OrderItem, OrderItemStatusLog
 from .forms import OrderForm, OrderItemFormSet
-from django.db.models import Sum, F, DurationField, ExpressionWrapper, Q
-from django.db.models.functions import TruncDate
+from django.db.models import Sum, F, DurationField, ExpressionWrapper, Q, Case, When, Value, DecimalField
+from django.db.models.functions import TruncDate, Coalesce
 
 
 def _apply_item_action(item, action):
@@ -227,15 +227,32 @@ def analytics_view(request):
     from django.core.serializers.json import DjangoJSONEncoder
 
     # 1. Detailed Table Data (Existing)
+    # Preislogik: KjGler -> 0, Einkaufspreis -> product.purchase_price (falls None fallback auf product.price), sonst product.price
+    item_unit_price = Case(
+        When(order__order_type='kjgler', then=Value(0)),
+        When(order__order_type='purchase', then=Coalesce(F('product__purchase_price'), F('product__price'))),
+        default=F('product__price'),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
     stats = OrderItem.objects.annotate(date=TruncDate('order__created_at')) \
         .values('date', 'product__name') \
-        .annotate(total_quantity=Sum('quantity'), total_revenue=Sum(F('quantity') * F('product__price'))) \
+        .annotate(total_quantity=Sum('quantity'), total_revenue=Sum(F('quantity') * item_unit_price)) \
         .order_by('-date', 'product__name')
 
     # 2. Daily Revenue (Line Chart)
+    # 2. Daily Revenue (Line Chart)
+    # Verwende dieselbe Preislogik wie oben, angewendet auf Order -> items Beziehung
+    order_item_unit_price = Case(
+        When(order_type='kjgler', then=Value(0)),
+        When(order_type='purchase', then=Coalesce(F('items__product__purchase_price'), F('items__product__price'))),
+        default=F('items__product__price'),
+        output_field=DecimalField(max_digits=10, decimal_places=2),
+    )
+
     daily_data = Order.objects.annotate(date=TruncDate('created_at')) \
         .values('date') \
-        .annotate(revenue=Sum(F('items__quantity') * F('items__product__price'))) \
+        .annotate(revenue=Sum(F('items__quantity') * order_item_unit_price)) \
         .order_by('date')
     
     daily_labels = [d['date'] for d in daily_data]
@@ -312,6 +329,11 @@ def analytics_view(request):
     if total_pizza_count > 0:
         avg_completion_minutes = round((total_pizza_duration_seconds / total_pizza_count) / 60, 1)
 
+    # 6. Übersicht: Anzahl KjG- und Einkaufspreis-Pizzen (Anzahl)
+    from django.db.models import IntegerField
+    kjg_count = OrderItem.objects.filter(product__category='pizza', order__order_type='kjgler').aggregate(total=Sum('quantity'))['total'] or 0
+    purchase_count = OrderItem.objects.filter(product__category='pizza', order__order_type='purchase').aggregate(total=Sum('quantity'))['total'] or 0
+
     context = {
         'stats': stats,
         'daily_labels': json.dumps(daily_labels, cls=DjangoJSONEncoder),
@@ -321,6 +343,8 @@ def analytics_view(request):
         'hourly_pizza_labels': json.dumps(hourly_pizza_labels),
         'hourly_pizza_datasets': json.dumps(hourly_pizza_datasets),
         'avg_completion_minutes': avg_completion_minutes,
+        'kjg_pizza_count': kjg_count,
+        'purchase_pizza_count': purchase_count,
     }
     
     return render(request, 'orders/analytics.html', context)

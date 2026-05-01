@@ -146,6 +146,24 @@ class StationWorkflowTests(TestCase):
 		self.assertEqual(display_orders[1].items[0].id, second_visible.id)
 		self.assertNotIn(first_hidden.id, [item.id for item in display_orders[0].items])
 
+	def test_station_views_show_quantity_for_multi_pizza_items(self):
+		kitchen_order = Order.objects.create(customer_name='Mehrfach', status='received', is_paid=True)
+		OrderItem.objects.create(order=kitchen_order, product=self.product, quantity=2)
+
+		kitchen_response = self.client.get(reverse('kitchen_view'), follow=True)
+
+		self.assertEqual(kitchen_response.status_code, 200)
+		self.assertContains(kitchen_response, '2x Salami')
+
+		output_order = Order.objects.create(customer_name='Ausgabe', status='ready', is_paid=True)
+		output_item = OrderItem.objects.create(order=output_order, product=self.product, quantity=2)
+		output_item.change_status('ready', 'ready')
+
+		output_response = self.client.get(reverse('output_view'), follow=True)
+
+		self.assertEqual(output_response.status_code, 200)
+		self.assertContains(output_response, '2x Salami')
+
 	def test_output_board_advances_ready_orders_to_completed(self):
 		order, items = self.create_order('received', item_count=2)
 		for item in items:

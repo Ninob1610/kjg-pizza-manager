@@ -8,13 +8,13 @@ class OrderForm(forms.ModelForm):
         fields = ['order_type', 'customer_name', 'is_paid', 'notes']
         labels = {
             'order_type': 'Bestelltyp',
-            'customer_name': 'Dein Name',
+            'customer_name': 'Kundenname/beschreibung',
             'is_paid': 'Bezahlt',
             'notes': 'Anmerkungen / Extrawünsche',
         }
         widgets = {
             'order_type': forms.Select(attrs={'class': 'form-control'}),
-            'customer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Name eingeben'}),
+            'customer_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'z.B. Max, Tisch 5, Lieferung...'}),
             'is_paid': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'z.B. Pizza Salami ohne Zwiebeln'}),
         }

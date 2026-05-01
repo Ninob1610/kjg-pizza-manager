@@ -28,7 +28,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <span class="badge bg-dark me-2">{{ forloop.counter }}</span>
-                        #{{ order.order.id }} {{ order.order.customer_name }}
+                        #{{ order.order.id }} {{ order.order.get_display_name }}
                     </h5>
                     <span>{{ order.order.created_at|date:"H:i" }}</span>
                 </div>
@@ -184,7 +184,7 @@
             <div>
                 <div class="fw-semibold">#{{ log.order_item.order.id }} {{ log.order_item.product.name }}</div>
                 <div class="small text-muted">
-                    {{ log.order_item.order.customer_name }} · {{ log.created_at|date:"d.m.Y H:i" }}
+                    {{ log.order_item.order.get_display_name }} · {{ log.created_at|date:"d.m.Y H:i" }}
                 </div>
             </div>
             {% if log.order_item.status == 'failed' %}

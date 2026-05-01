@@ -3,6 +3,40 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 
+
+class FunnyNames:
+    """Generator für lustige Namen wenn kein Name angegeben wurde"""
+    ADJECTIVES = [
+        'Schnelle', 'Hungrige', 'Geheimnisvolle', 'Mutige', 'Glückliche',
+        'Freche', 'Träge', 'Wildeste', 'Geheime', 'Merkwürdige',
+        'Verrückte', 'Zauberhafte', 'Lockende', 'Süße', 'Soziale',
+        'Stumme', 'Redseelige', 'Sanfte', 'Starke', 'Weise',
+        'Dumme', 'Kluge', 'Schöne', 'Hässliche', 'Komische',
+        'Tragische', 'Epische', 'Dramatische', 'Romantische', 'Skeptische',
+    ]
+    
+    NOUNS = [
+        'Pizza-Ninja', 'Käse-König', 'Salami-Samurai', 'Knoblauch-Kobold',
+        'Oregano-Oger', 'Teig-Troll', 'Ofen-Ork', 'Belag-Baron',
+        'Kruste-Krake', 'Soße-Sultan', 'Mozzarella-Monster', 'Pepperoni-Pirat',
+        'Basilikum-Bandit', 'Thunfisch-Titan', 'Schinken-Held', 'Spinat-Spion',
+        'Zwiebel-Zauberer', 'Pilz-Prophet', 'Mais-Magier', 'Oliven-Oracle',
+        'Tomate-Terrorist', 'Paprika-Phantom', 'Feta-Führer', 'Ricotta-Ritter',
+        'Gorgonzola-Geist', 'Raclette-Räuber', 'PIZZA-GOTT', 'Cardia-Champion',
+    ]
+    
+    @staticmethod
+    def get_funny_name(order_id):
+        """Generiert einen lustigen Namen basierend auf der Order-ID"""
+        if not order_id:
+            return "Anonyme Pizza"
+        
+        adj_index = (order_id * 7) % len(FunnyNames.ADJECTIVES)
+        noun_index = (order_id * 13) % len(FunnyNames.NOUNS)
+        
+        return f"{FunnyNames.ADJECTIVES[adj_index]} {FunnyNames.NOUNS[noun_index]}"
+
+
 class Product(models.Model):
     CATEGORY_CHOICES = [
         ('pizza', 'Pizza'),
@@ -85,8 +119,14 @@ class Order(models.Model):
             return product.purchase_price if product.purchase_price is not None else product.price
         return product.price
 
+    def get_display_name(self):
+        """Gibt den anzeigbaren Namen zurück - lustiger Name wenn kein Name angegeben"""
+        if self.customer_name:
+            return self.customer_name
+        return FunnyNames.get_funny_name(self.id)
+
     def __str__(self):
-        return f"Bestellung #{self.id} - {self.customer_name}"
+        return f"Bestellung #{self.id} - {self.get_display_name()}"
 
 class OrderItem(models.Model):
     STATUS_CHOICES = [

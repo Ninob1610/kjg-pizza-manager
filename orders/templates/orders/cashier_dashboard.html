@@ -23,7 +23,7 @@
             {% for order in orders %}
             <tr{% if order.status == 'completed' and not order.is_paid %} class="table-warning"{% endif %}>
                 <td>{{ order.id }}</td>
-                <td>{{ order.customer_name|default:"-" }}</td>
+                <td>{{ order.get_display_name }}</td>
                 <td>{{ order.get_order_type_display }}</td>
                 <td>
                     {% if order.notes %}

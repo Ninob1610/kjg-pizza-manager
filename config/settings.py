@@ -142,9 +142,8 @@ CACHES = {
     }
 }
 
-# Session Configuration für Performance
-SESSION_CACHE_ALIAS = 'default'
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'  # Sessions im Cache speichern statt DB
+# Session Configuration - Use Database for reliability across multiple workers
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Sessions in DB speichern (zuverlässig)
 
 # Database Connection Pooling
 DATABASES = {

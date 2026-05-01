@@ -11,7 +11,12 @@ class Product(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=5, decimal_places=2)
     purchase_price = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='pizza')
+    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, default='pizza', db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['category']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.price}€)"
@@ -31,10 +36,18 @@ class Order(models.Model):
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES, default='regular')
     notes = models.TextField(blank=True, null=True, verbose_name="Anmerkungen / Extrawünsche")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received')
-    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received', db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     completed_at = models.DateTimeField(blank=True, null=True)
-    is_paid = models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['is_paid', 'status']),  # Composite index für Queries
+            models.Index(fields=['-created_at']),  # Beschleunige ORDER BY -created_at
+        ]
 
     def total_price(self):
         return sum(item.total_price() for item in self.items.all())
@@ -88,7 +101,13 @@ class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
     notes = models.TextField(blank=True, null=True, verbose_name="Extrawünsche")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='received', db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['order', 'status']),  # Composite index für Filtering
+        ]
 
     def change_status(self, new_status, action, note=None):
         old_status = self.status

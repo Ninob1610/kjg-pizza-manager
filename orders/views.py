@@ -40,6 +40,7 @@ def _build_display_orders(orders, mode):
     for order in orders:
         visible_items = []
 
+        # Nutze bereits prefetched items statt erneut zu laden
         for item in order.items.all():
             if mode == 'kitchen' and item.status in ['ready', 'completed']:
                 continue
@@ -93,7 +94,7 @@ def cashier_dashboard(request):
         return redirect('cashier_dashboard')
 
     # Completed orders stay visible until they are paid.
-    orders = Order.objects.exclude(status='completed', is_paid=True).order_by('-created_at')
+    orders = Order.objects.exclude(status='completed', is_paid=True).prefetch_related('items__product').order_by('-created_at')
 
     return render(request, 'orders/cashier_dashboard.html', {'orders': orders})
 
@@ -106,13 +107,26 @@ def create_order_cashier(request):
             order = form.save()
             # Process items from POST data (similar to customer view)
             has_items = False
+            # Optimierung: in_bulk() statt einzelne .get() Aufrufe
+            product_ids = []
+            for key, value in request.POST.items():
+                if key.startswith('product_') and key[8:].isdigit():
+                    try:
+                        p_id = int(key.split('_')[1])
+                        product_ids.append(p_id)
+                    except (ValueError, IndexError):
+                        continue
+            
+            # Lade alle Produkte auf einmal
+            products_by_id = Product.objects.filter(id__in=product_ids).in_bulk()
+            
             for key, value in request.POST.items():
                 if key.startswith('product_') and key[8:].isdigit():
                     try:
                         p_id = int(key.split('_')[1])
                         quantity = int(value)
-                        if quantity > 0:
-                            product = Product.objects.get(id=p_id)
+                        if quantity > 0 and p_id in products_by_id:
+                            product = products_by_id[p_id]
                             item_notes = request.POST.get(f'product_note_{p_id}', '').strip()
                             OrderItem.objects.create(
                                 order=order,
@@ -121,7 +135,7 @@ def create_order_cashier(request):
                                 notes=item_notes or None,
                             )
                             has_items = True
-                    except (ValueError, Product.DoesNotExist):
+                    except (ValueError, IndexError):
                         continue
             
             if has_items:
@@ -137,7 +151,7 @@ def create_order_cashier(request):
     })
 
 def kitchen_view(request):
-    orders = Order.objects.exclude(status='completed').order_by('created_at')
+    orders = Order.objects.exclude(status='completed').prefetch_related('items__product').order_by('created_at')
 
     if request.method == 'POST':
         item_id = request.POST.get('item_id')
@@ -174,7 +188,7 @@ def kitchen_view(request):
 
 
 def output_view(request):
-    orders = Order.objects.filter(status='ready').order_by('created_at')
+    orders = Order.objects.filter(status='ready').prefetch_related('items__product').order_by('created_at')
 
     if request.method == 'POST':
         item_id = request.POST.get('item_id')

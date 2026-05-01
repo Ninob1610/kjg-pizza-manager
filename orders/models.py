@@ -7,22 +7,22 @@ from django.utils import timezone
 class FunnyNames:
     """Generator für lustige Namen wenn kein Name angegeben wurde"""
     ADJECTIVES = [
-        'Schnelle', 'Hungrige', 'Geheimnisvolle', 'Mutige', 'Glückliche',
-        'Freche', 'Träge', 'Wildeste', 'Geheime', 'Merkwürdige',
-        'Verrückte', 'Zauberhafte', 'Lockende', 'Süße', 'Soziale',
-        'Stumme', 'Redseelige', 'Sanfte', 'Starke', 'Weise',
-        'Dumme', 'Kluge', 'Schöne', 'Hässliche', 'Komische',
-        'Tragische', 'Epische', 'Dramatische', 'Romantische', 'Skeptische',
+        'Quick', 'Hungry', 'Mysterious', 'Brave', 'Lucky',
+        'Cheeky', 'Lazy', 'Wild', 'Secret', 'Strange',
+        'Crazy', 'Magical', 'Tempting', 'Sweet', 'Social',
+        'Silent', 'Talkative', 'Gentle', 'Strong', 'Wise',
+        'Silly', 'Clever', 'Beautiful', 'Ugly', 'Funny',
+        'Tragic', 'Epic', 'Dramatic', 'Romantic', 'Skeptical',
     ]
     
     NOUNS = [
-        'Pizza-Ninja', 'Käse-König', 'Salami-Samurai', 'Knoblauch-Kobold',
-        'Oregano-Oger', 'Teig-Troll', 'Ofen-Ork', 'Belag-Baron',
-        'Kruste-Krake', 'Soße-Sultan', 'Mozzarella-Monster', 'Pepperoni-Pirat',
-        'Basilikum-Bandit', 'Thunfisch-Titan', 'Schinken-Held', 'Spinat-Spion',
-        'Zwiebel-Zauberer', 'Pilz-Prophet', 'Mais-Magier', 'Oliven-Oracle',
-        'Tomate-Terrorist', 'Paprika-Phantom', 'Feta-Führer', 'Ricotta-Ritter',
-        'Gorgonzola-Geist', 'Raclette-Räuber', 'PIZZA-GOTT', 'Cardia-Champion',
+        'Pizza-Ninja', 'Cheese-King', 'Salami-Samurai', 'Garlic-Goblin',
+        'Oregano-Ogre', 'Dough-Troll', 'Oven-Orc', 'Topping-Baron',
+        'Crust-Kraken', 'Sauce-Sultan', 'Mozzarella-Monster', 'Pepperoni-Pirate',
+        'Basil-Bandit', 'Tuna-Titan', 'Ham-Hero', 'Spinach-Spy',
+        'Onion-Wizard', 'Mushroom-Prophet', 'Corn-Magician', 'Olive-Oracle',
+        'Tomato-Tornado', 'Pepper-Phantom', 'Feta-Fury', 'Ricotta-Rogue',
+        'Gorgonzola-Ghost', 'Raclette-Rogue', 'PIZZA-GOD', 'Cardio-Champion',
     ]
     
     @staticmethod
